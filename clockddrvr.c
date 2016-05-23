@@ -12,17 +12,85 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/jiffies.h>
-
+#include <linux/time.h>
+#include <asm/msr.h>
+#include <linux/timex.h>
 #include "clockddrvr.h"
 
 MODULE_LICENSE("GPL");
 
 static struct proc_dir_entry* j_file;
 
+// socket and core. each socket has it's own clock
+//  time stamp counter
+
+
+/*
+ *
+static __inline__ unsigned long long rdtsc(void)
+{
+  unsigned long long int x;
+     __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
+     return x;
+}
+ *
+ */
+/*
+uint64_t rdtsc(){
+
+    return ((uint64_t)hi << 32) | lo;
+}
+*/
+
+
 static int j_show(struct seq_file *m, void *v)
 {
+	volatile unsigned long cycles_low_start, cycles_high_start;
+	volatile unsigned cycles_low_end, cycles_high_end;
 
-	seq_printf(m, "Hello World\n" );
+
+	volatile int start = jiffies;
+	volatile int timeout = start + 5*HZ; // let it run 1 second
+
+	asm volatile (
+		"CPUID\n\t"
+		"RDTSC\n\t"
+		"mov %%edx, %0\n\t"
+		"mov %%eax, %1\n\t": "=r" (cycles_high_start), "=r" (cycles_low_start)::
+				"%rax", "%rbx", "%rcx", "%rdx");
+
+
+	while(jiffies < timeout) {}
+	volatile int finish = jiffies;
+
+
+	asm volatile (
+		"CPUID\n\t"
+		"RDTSC\n\t"
+		"mov %%edx, %0\n\t"
+		"mov %%eax, %1\n\t": "=r" (cycles_high_end), "=r" (cycles_low_end)::
+				"%rax", "%rbx", "%rcx", "%rdx");
+
+	seq_printf(m, "Clock finish (@jiffies=%ld,HZ=%d) ticks=%ld %u %i seconds\n" ,
+			finish,HZ, cycles_high_end, cycles_low_end, (finish-start)/HZ );
+
+	seq_printf(m, "Clock start  (@jiffies=%ld,HZ=%d) ticks=%ld %u \n" ,
+			start,HZ, cycles_high_start, cycles_low_start);
+
+ 	seq_printf(m, "high time   end ticks= %u \n" , cycles_high_end * 100 );
+	seq_printf(m, "low time    end ticks= %u \n" , cycles_low_end / 100000000);
+
+ 	seq_printf(m, "high time start ticks= %u \n" , cycles_high_start * 100);
+	seq_printf(m, "low time  start ticks= %u \n" , cycles_low_start / 100000000);
+
+	unsigned long completed =  (cycles_high_end * 100  ) +(cycles_low_end / 100000000);
+	unsigned long initial = (cycles_high_start * 100 ) +  (cycles_low_start / 100000000);
+	unsigned long totalticks =  completed  - initial;
+
+	seq_printf(m, " time       end ticks= %u \n" , completed);
+	seq_printf(m, " time     start ticks= %u \n" , initial);
+	seq_printf(m, "total ticks %u \n" , totalticks );
+	seq_printf(m, "total ticks %u \n" , totalticks/5);
 
 	return 0;
 }
