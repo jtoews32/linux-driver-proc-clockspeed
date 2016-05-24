@@ -21,27 +21,7 @@ MODULE_LICENSE("GPL");
 
 static struct proc_dir_entry* j_file;
 
-// socket and core. each socket has it's own clock
 //  time stamp counter
-
-
-/*
- *
-static __inline__ unsigned long long rdtsc(void)
-{
-  unsigned long long int x;
-     __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-     return x;
-}
- *
- */
-/*
-uint64_t rdtsc(){
-
-    return ((uint64_t)hi << 32) | lo;
-}
-*/
-
 
 static int j_show(struct seq_file *m, void *v)
 {
