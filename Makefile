@@ -1,25 +1,25 @@
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
-obj-m := clockddrvr.o
+obj-m := cpuspeed.o
 
 all: clean run 
 	@make -s clean
 
 run: load
-	dd if=/proc/clockproc count=1;
+	dd if=/proc/cpuspeed count=1;
 
-load: clockddrvr.o
-	-su -c "insmod ./clockddrvr.ko; mknod -m 666 /dev/clockddrvr c 33 0;"
+load: cpuspeed.o
+	-su -c "insmod ./cpuspeed.ko" # mknod -m 666 /dev/cpuspeed c 33 0;"
 
 
-clockddrvr.o:
+cpuspeed.o:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
 unload:
-	-su -c " rmmod clockddrvr; \
-	rm -fr /dev/clockddrvr;"
+	-su -c " rmmod cpuspeed; "#\
+#	rm -fr /dev/cpuspeed;"
 
 clean: unload
-	-@rm -fr *.o clockddrvr*.o clockddrvr*.ko .clockddrvr*.* clockddrvr*.*.* .tmp_versions [mM]odule*
+	-@rm -fr *.o cpuspeed*.o cpuspeed*.ko .cpuspeed*.* cpuspeed*.*.* .tmp_versions [mM]odule*
 
